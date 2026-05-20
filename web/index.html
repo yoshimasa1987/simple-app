@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#6b3a1a">
+  <title>そろばん</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="total">
+      <div class="total-label">合計</div>
+      <div class="total-value" id="total" aria-live="polite">0</div>
+    </header>
+
+    <section class="board-wrap">
+      <section class="board" id="board" aria-label="そろばん盤面"></section>
+    </section>
+
+    <footer class="actions">
+      <button id="reset" type="button" class="reset-btn">ご破算</button>
+    </footer>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

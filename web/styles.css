@@ -1,0 +1,194 @@
+:root {
+  --frame:        #6b3a1a;
+  --frame-light:  #8a4a22;
+  --deck:        #f2e0b8;
+  --beam:        #4d2e1a;
+  --bead-1:      #c6731f;
+  --bead-2:      #743712;
+  --bg:          #f2f2f7;
+  --text:        #1c1c1e;
+  --muted:       #6e6e73;
+  --accent:      #c0392b;
+
+  --bead-w: 34px;
+  --bead-h: 22px;
+  --slot-h: 24px;   /* 1スロットの高さ（珠+わずかな余白） */
+  --upper-slots: 2; /* 上段は五珠1個 + 払った時の空きスロット */
+  --lower-slots: 5; /* 下段は一珠4個 + 払った位置の空きスロット */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans",
+               "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- 合計表示 ---------- */
+.total {
+  text-align: center;
+  padding: 8px 0;
+}
+.total-label {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+.total-value {
+  font-size: 40px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+/* ---------- 盤面 ---------- */
+.board-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0;
+}
+
+.board {
+  display: inline-flex;
+  gap: 6px;
+  padding: 14px 14px 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--frame-light), var(--frame));
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.deck {
+  position: relative;
+  width: calc(var(--bead-w) + 8px);
+  background: var(--deck);
+  border-radius: 5px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+}
+.deck--heaven { height: calc(var(--slot-h) * var(--upper-slots)); }
+.deck--earth  { height: calc(var(--slot-h) * var(--lower-slots)); }
+
+.beam {
+  width: calc(var(--bead-w) + 8px);
+  height: 5px;
+  background: var(--beam);
+  border-radius: 1px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+}
+
+/* ---------- 珠 ---------- */
+.bead {
+  position: absolute;
+  left: 50%;
+  width: var(--bead-w);
+  height: var(--bead-h);
+  margin-left: calc(var(--bead-w) / -2);
+  border-radius: 50% / 45%;
+  background: linear-gradient(135deg, var(--bead-1), var(--bead-2));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 1px 1px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease-out;
+  touch-action: manipulation;
+}
+
+/*
+  五珠 (heaven)
+  - 非active: 上に寄る（row 1 のスロット位置）
+  - active:   下に寄って梁に密着（row 2 のスロット位置）
+*/
+.bead[data-kind="heaven"] {
+  top: 1px;
+  transform: translateY(0);
+}
+.bead[data-kind="heaven"].is-active {
+  transform: translateY(var(--slot-h));
+}
+
+/*
+  一珠 (earth) row=1..4
+  - 払 (非active): 自分の row+1 番目のスロットへ下げる
+    → row k は下から (4-k) 番目のスロット余りの上
+    座標化: top = (row) * --slot-h  (row=1 → slot 1, row=4 → slot 4) は払の位置
+  - 入 (active):   row-1 番目のスロットへ上げる（梁に詰める）
+    座標化: top = (row-1) * --slot-h
+*/
+.bead[data-kind="earth"] {
+  top: 1px;
+}
+.bead[data-kind="earth"][data-row="1"]            { transform: translateY(calc(var(--slot-h) * 1)); }
+.bead[data-kind="earth"][data-row="2"]            { transform: translateY(calc(var(--slot-h) * 2)); }
+.bead[data-kind="earth"][data-row="3"]            { transform: translateY(calc(var(--slot-h) * 3)); }
+.bead[data-kind="earth"][data-row="4"]            { transform: translateY(calc(var(--slot-h) * 4)); }
+.bead[data-kind="earth"][data-row="1"].is-active  { transform: translateY(calc(var(--slot-h) * 0)); }
+.bead[data-kind="earth"][data-row="2"].is-active  { transform: translateY(calc(var(--slot-h) * 1)); }
+.bead[data-kind="earth"][data-row="3"].is-active  { transform: translateY(calc(var(--slot-h) * 2)); }
+.bead[data-kind="earth"][data-row="4"].is-active  { transform: translateY(calc(var(--slot-h) * 3)); }
+
+/* タップ時の軽い反応 */
+.bead:active { filter: brightness(1.1); }
+
+/* ---------- 桁ラベル ---------- */
+.place {
+  font-size: 10px;
+  color: rgba(255,255,255,0.85);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- ご破算 ---------- */
+.actions {
+  display: flex;
+  justify-content: center;
+  padding: 0 4px;
+}
+.reset-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  touch-action: manipulation;
+}
+.reset-btn:active { transform: translateY(1px); }
