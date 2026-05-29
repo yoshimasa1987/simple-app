@@ -31,6 +31,19 @@ npm start
 > ⚠️ サーバーが動作しているマシン上のパスを対象にします。
 > 「完全ミラー」を有効にすると、送信元から消したファイルはコピー先からも消えます。
 
+### OneDrive / SharePoint について
+
+このアプリは**ローカルの実フォルダ**をミラーします。
+
+- **同期済みの OneDrive / SharePoint**（`C:\Users\名前\OneDrive...` のようにエクスプローラーで
+  フォルダとして見える状態）→ ツリーから選べます。そこへコピーすると同期クライアントが
+  自動でクラウドへアップロードします。
+- **オンラインのみ（未同期）の SharePoint / OneDrive** → ローカルにフォルダの実体が無いため、
+  本アプリでは直接コピーできません（Microsoft Graph API 連携などの別実装が必要）。
+
+ツリーは Windows の各ドライブ・OneDrive フォルダ・ホームを起点に表示するので、
+同期フォルダであればたどって選択できます。
+
 ## API
 
 | メソッド | パス | 説明 |
@@ -41,6 +54,7 @@ npm start
 | POST | `/api/jobs/:id/start` | 監視開始 |
 | POST | `/api/jobs/:id/stop` | 監視停止 |
 | GET | `/api/jobs/:id/logs` | ログ取得 |
+| GET | `/api/roots` | 起点一覧（Windowsはドライブ＋OneDrive＋ホーム / その他は / とホーム） |
 | GET | `/api/browse?path=` | フォルダ参照（サブフォルダ一覧。省略時はホーム） |
 | POST | `/api/mkdir` | 新規フォルダ作成 `{parent, name}` |
 

@@ -146,12 +146,16 @@ async function openPicker(targetName) {
   pickerSelectBtn.disabled = true;
   picker.classList.remove('hidden');
 
-  // ホームをルートとしてツリーを初期化
+  // ドライブ／ホーム／OneDrive などの起点を並べてツリーを初期化
   pickerTree.innerHTML = '<li class="empty">読み込み中…</li>';
   try {
-    const home = await api('/api/browse');
+    const { roots } = await api('/api/roots');
     pickerTree.innerHTML = '';
-    pickerTree.appendChild(makeNode({ name: `🏠 ${home.path}`, path: home.path }, true));
+    roots.forEach((r, i) => {
+      // ホーム（最後の要素）だけ最初から開いておく
+      const isHome = i === roots.length - 1;
+      pickerTree.appendChild(makeNode({ name: r.name, path: r.path }, true, isHome));
+    });
   } catch (err) {
     pickerTree.innerHTML = `<li class="empty">${escapeHtml(err.message)}</li>`;
   }
@@ -162,7 +166,7 @@ function closePicker() {
 }
 
 // ツリーの1ノード（フォルダ）を生成する
-function makeNode(entry, isRoot = false) {
+function makeNode(entry, isRoot = false, autoExpand = false) {
   const li = document.createElement('li');
   li.className = 'tree-node';
 
@@ -232,8 +236,8 @@ function makeNode(entry, isRoot = false) {
     if (!expanded) expand();
   });
 
-  // ルートは最初から開いておく
-  if (isRoot) expand();
+  // 指定された起点だけ最初から開いておく
+  if (autoExpand) expand();
 
   return li;
 }

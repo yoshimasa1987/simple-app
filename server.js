@@ -13,6 +13,43 @@ const store = new JobStore();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 起点（ルート）一覧: Windowsはドライブ＋ホーム＋OneDrive系、その他は / とホーム
+app.get('/api/roots', async (req, res) => {
+  const home = os.homedir();
+  const roots = [];
+
+  if (process.platform === 'win32') {
+    // A:〜Z: のうち実在するドライブを探す
+    for (let c = 67; c <= 90; c++) {
+      // C から開始
+      const drive = `${String.fromCharCode(c)}:\\`;
+      try {
+        await fsp.access(drive);
+        roots.push({ name: `💽 ${drive}`, path: drive });
+      } catch {
+        /* 存在しないドライブは無視 */
+      }
+    }
+    // OneDrive / SharePoint 同期フォルダ（環境変数 or ホーム直下を検出）
+    for (const key of ['OneDrive', 'OneDriveConsumer', 'OneDriveCommercial']) {
+      const p = process.env[key];
+      if (p) {
+        try {
+          await fsp.access(p);
+          if (!roots.some((r) => r.path === p)) {
+            roots.push({ name: `☁ ${path.basename(p)}`, path: p });
+          }
+        } catch { /* なければ無視 */ }
+      }
+    }
+  } else {
+    roots.push({ name: '💽 / （ルート）', path: '/' });
+  }
+
+  roots.push({ name: `🏠 ホーム (${home})`, path: home });
+  res.json({ home, platform: process.platform, roots });
+});
+
 // フォルダ参照: 指定パス（省略時はホーム）配下のサブフォルダ一覧を返す
 app.get('/api/browse', async (req, res) => {
   const target = req.query.path ? path.resolve(req.query.path) : os.homedir();
