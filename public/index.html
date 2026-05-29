@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ミラーコピーアプリ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>🪞 ミラーコピーアプリ</h1>
+    <p class="sub">送信元フォルダの変更をリアルタイムで監視し、コピー先へミラー転送します。</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>新しいミラー転送を追加</h2>
+      <form id="job-form">
+        <label>
+          名前（任意）
+          <input type="text" name="name" placeholder="例: 写真バックアップ" />
+        </label>
+        <label>
+          送信元フォルダ（絶対パス）
+          <input type="text" name="source" placeholder="/home/user/src" required />
+        </label>
+        <label>
+          コピー先フォルダ（絶対パス）
+          <input type="text" name="dest" placeholder="/home/user/backup" required />
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="deleteOrphans" checked />
+          送信元で削除されたファイルをコピー先からも削除する（完全ミラー）
+        </label>
+        <button type="submit">追加</button>
+      </form>
+      <p id="form-error" class="error"></p>
+    </section>
+
+    <section>
+      <h2>ミラー転送ジョブ</h2>
+      <div id="jobs"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

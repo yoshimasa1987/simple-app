@@ -1,0 +1,13 @@
+{
+  "name": "mirror-copy-app",
+  "version": "1.0.0",
+  "description": "送信元フォルダの変更をリアルタイムで監視し、コピー先へミラー転送するアプリ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "express": "^5.2.1"
+  }
+}
