@@ -127,6 +127,90 @@ jobsEl.addEventListener('click', async (e) => {
   }
 });
 
+/* ===== フォルダ選択ダイアログ ===== */
+const picker = document.getElementById('picker');
+const pickerList = document.getElementById('picker-list');
+const pickerPath = document.getElementById('picker-path');
+let pickerCurrent = null; // 現在表示しているフォルダ
+let pickerTarget = null;  // 値を入れる対象のinput name ('source' | 'dest')
+
+async function openPicker(targetName) {
+  pickerTarget = targetName;
+  document.getElementById('picker-title').textContent =
+    targetName === 'source' ? '送信元フォルダを選択' : 'コピー先フォルダを選択';
+  // すでに入力済みならそこから、なければホームから開始
+  const cur = form.elements[targetName].value;
+  picker.classList.remove('hidden');
+  await loadPicker(cur || null);
+}
+
+function closePicker() {
+  picker.classList.add('hidden');
+}
+
+async function loadPicker(targetPath) {
+  pickerList.innerHTML = '<li class="empty">読み込み中…</li>';
+  try {
+    const q = targetPath ? `?path=${encodeURIComponent(targetPath)}` : '';
+    const data = await api(`/api/browse${q}`);
+    pickerCurrent = data.path;
+    pickerPath.textContent = data.path;
+    pickerList.innerHTML = '';
+    if (data.entries.length === 0) {
+      pickerList.innerHTML = '<li class="empty">このフォルダにサブフォルダはありません</li>';
+      return;
+    }
+    data.entries.forEach((e) => {
+      const li = document.createElement('li');
+      li.innerHTML = `📁 ${escapeHtml(e.name)}`;
+      li.addEventListener('click', () => loadPicker(e.path));
+      pickerList.appendChild(li);
+    });
+  } catch (err) {
+    pickerList.innerHTML = `<li class="empty">${escapeHtml(err.message)}</li>`;
+  }
+}
+
+document.querySelectorAll('button[data-browse]').forEach((btn) => {
+  btn.addEventListener('click', () => openPicker(btn.dataset.browse));
+});
+
+document.getElementById('picker-close').addEventListener('click', closePicker);
+document.getElementById('picker-cancel').addEventListener('click', closePicker);
+picker.addEventListener('click', (e) => {
+  if (e.target === picker) closePicker(); // 背景クリックで閉じる
+});
+
+document.getElementById('picker-up').addEventListener('click', async () => {
+  const q = `?path=${encodeURIComponent(pickerCurrent)}`;
+  const data = await api(`/api/browse${q}`);
+  if (data.parent) loadPicker(data.parent);
+});
+
+document.getElementById('picker-home').addEventListener('click', () => loadPicker(null));
+
+document.getElementById('picker-select').addEventListener('click', () => {
+  if (pickerCurrent && pickerTarget) {
+    form.elements[pickerTarget].value = pickerCurrent;
+  }
+  closePicker();
+});
+
+document.getElementById('picker-newfolder').addEventListener('click', async () => {
+  const name = prompt(`「${pickerCurrent}」の中に作る新しいフォルダ名を入力してください`);
+  if (!name) return;
+  try {
+    const created = await api('/api/mkdir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent: pickerCurrent, name }),
+    });
+    await loadPicker(created.path); // 作ったフォルダの中に移動
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
 // 自動更新（監視中のステータス・ログを反映）
 refresh();
 setInterval(refresh, 2000);

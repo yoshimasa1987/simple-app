@@ -21,12 +21,18 @@
           <input type="text" name="name" placeholder="例: 写真バックアップ" />
         </label>
         <label>
-          送信元フォルダ（絶対パス）
-          <input type="text" name="source" placeholder="/home/user/src" required />
+          送信元フォルダ
+          <div class="path-row">
+            <input type="text" name="source" placeholder="「参照」から選択してください" readonly required />
+            <button type="button" class="secondary" data-browse="source">参照…</button>
+          </div>
         </label>
         <label>
-          コピー先フォルダ（絶対パス）
-          <input type="text" name="dest" placeholder="/home/user/backup" required />
+          コピー先フォルダ
+          <div class="path-row">
+            <input type="text" name="dest" placeholder="「参照」から選択してください" readonly required />
+            <button type="button" class="secondary" data-browse="dest">参照…</button>
+          </div>
         </label>
         <label class="checkbox">
           <input type="checkbox" name="deleteOrphans" checked />
@@ -42,6 +48,28 @@
       <div id="jobs"></div>
     </section>
   </main>
+
+  <!-- フォルダ選択ダイアログ -->
+  <div id="picker" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 id="picker-title">フォルダを選択</h3>
+        <button type="button" class="icon" id="picker-close">✕</button>
+      </div>
+      <div class="picker-bar">
+        <button type="button" class="secondary" id="picker-up">⬆ 上の階層へ</button>
+        <button type="button" class="secondary" id="picker-home">🏠 ホーム</button>
+        <code id="picker-path"></code>
+      </div>
+      <ul id="picker-list" class="picker-list"></ul>
+      <div class="modal-foot">
+        <button type="button" class="secondary" id="picker-newfolder">＋ 新規フォルダ</button>
+        <div class="spacer"></div>
+        <button type="button" class="secondary" id="picker-cancel">キャンセル</button>
+        <button type="button" id="picker-select">このフォルダを選択</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

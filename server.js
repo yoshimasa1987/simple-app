@@ -1,6 +1,8 @@
 'use strict';
 
+const os = require('os');
 const path = require('path');
+const fsp = require('fs/promises');
 const express = require('express');
 const { JobStore } = require('./lib/store');
 
@@ -10,6 +12,45 @@ const store = new JobStore();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// フォルダ参照: 指定パス（省略時はホーム）配下のサブフォルダ一覧を返す
+app.get('/api/browse', async (req, res) => {
+  const target = req.query.path ? path.resolve(req.query.path) : os.homedir();
+  try {
+    const dirents = await fsp.readdir(target, { withFileTypes: true });
+    const entries = dirents
+      .filter((d) => d.isDirectory())
+      .map((d) => ({ name: d.name, path: path.join(target, d.name) }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    const parent = path.dirname(target);
+    res.json({
+      path: target,
+      parent: parent === target ? null : parent, // ルートでは parent を null
+      home: os.homedir(),
+      entries,
+    });
+  } catch (err) {
+    res.status(400).json({ error: `フォルダを開けません: ${err.message}` });
+  }
+});
+
+// 新規フォルダ作成（コピー先をその場で作りたいとき用）
+app.post('/api/mkdir', async (req, res) => {
+  const { parent, name } = req.body || {};
+  if (!parent || !name) {
+    return res.status(400).json({ error: '親フォルダ(parent)と名前(name)は必須です' });
+  }
+  if (name.includes('/') || name.includes('\\') || name === '..' || name === '.') {
+    return res.status(400).json({ error: 'フォルダ名に使えない文字が含まれています' });
+  }
+  const target = path.join(path.resolve(parent), name);
+  try {
+    await fsp.mkdir(target, { recursive: true });
+    res.status(201).json({ path: target });
+  } catch (err) {
+    res.status(400).json({ error: `作成できません: ${err.message}` });
+  }
+});
 
 // ジョブ一覧
 app.get('/api/jobs', (req, res) => {
