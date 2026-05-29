@@ -56,17 +56,16 @@
         <h3 id="picker-title">フォルダを選択</h3>
         <button type="button" class="icon" id="picker-close">✕</button>
       </div>
-      <div class="picker-bar">
-        <button type="button" class="secondary" id="picker-up">⬆ 上の階層へ</button>
-        <button type="button" class="secondary" id="picker-home">🏠 ホーム</button>
-        <code id="picker-path"></code>
+      <p class="picker-hint">▶ をクリックすると中のフォルダが開きます。名前をクリックして選択してください。</p>
+      <ul id="picker-tree" class="picker-tree"></ul>
+      <div class="picker-selected">
+        選択中: <code id="picker-path">（未選択）</code>
       </div>
-      <ul id="picker-list" class="picker-list"></ul>
       <div class="modal-foot">
         <button type="button" class="secondary" id="picker-newfolder">＋ 新規フォルダ</button>
         <div class="spacer"></div>
         <button type="button" class="secondary" id="picker-cancel">キャンセル</button>
-        <button type="button" id="picker-select">このフォルダを選択</button>
+        <button type="button" id="picker-select" disabled>このフォルダを選択</button>
       </div>
     </div>
   </div>

@@ -127,48 +127,115 @@ jobsEl.addEventListener('click', async (e) => {
   }
 });
 
-/* ===== フォルダ選択ダイアログ ===== */
+/* ===== フォルダ選択ダイアログ（ツリー表示） ===== */
 const picker = document.getElementById('picker');
-const pickerList = document.getElementById('picker-list');
+const pickerTree = document.getElementById('picker-tree');
 const pickerPath = document.getElementById('picker-path');
-let pickerCurrent = null; // 現在表示しているフォルダ
-let pickerTarget = null;  // 値を入れる対象のinput name ('source' | 'dest')
+const pickerSelectBtn = document.getElementById('picker-select');
+let pickerSelected = null; // 選択中のフォルダ絶対パス
+let pickerTarget = null;   // 値を入れる対象のinput name ('source' | 'dest')
+let selectedRowEl = null;  // ハイライト中の行
 
 async function openPicker(targetName) {
   pickerTarget = targetName;
   document.getElementById('picker-title').textContent =
     targetName === 'source' ? '送信元フォルダを選択' : 'コピー先フォルダを選択';
-  // すでに入力済みならそこから、なければホームから開始
-  const cur = form.elements[targetName].value;
+  pickerSelected = null;
+  selectedRowEl = null;
+  pickerPath.textContent = '（未選択）';
+  pickerSelectBtn.disabled = true;
   picker.classList.remove('hidden');
-  await loadPicker(cur || null);
+
+  // ホームをルートとしてツリーを初期化
+  pickerTree.innerHTML = '<li class="empty">読み込み中…</li>';
+  try {
+    const home = await api('/api/browse');
+    pickerTree.innerHTML = '';
+    pickerTree.appendChild(makeNode({ name: `🏠 ${home.path}`, path: home.path }, true));
+  } catch (err) {
+    pickerTree.innerHTML = `<li class="empty">${escapeHtml(err.message)}</li>`;
+  }
 }
 
 function closePicker() {
   picker.classList.add('hidden');
 }
 
-async function loadPicker(targetPath) {
-  pickerList.innerHTML = '<li class="empty">読み込み中…</li>';
-  try {
-    const q = targetPath ? `?path=${encodeURIComponent(targetPath)}` : '';
-    const data = await api(`/api/browse${q}`);
-    pickerCurrent = data.path;
-    pickerPath.textContent = data.path;
-    pickerList.innerHTML = '';
-    if (data.entries.length === 0) {
-      pickerList.innerHTML = '<li class="empty">このフォルダにサブフォルダはありません</li>';
-      return;
+// ツリーの1ノード（フォルダ）を生成する
+function makeNode(entry, isRoot = false) {
+  const li = document.createElement('li');
+  li.className = 'tree-node';
+
+  const row = document.createElement('div');
+  row.className = 'tree-row';
+
+  const toggle = document.createElement('span');
+  toggle.className = 'tree-toggle';
+  toggle.textContent = '▶';
+
+  const label = document.createElement('span');
+  label.className = 'tree-label';
+  label.textContent = isRoot ? entry.name : `📁 ${entry.name}`;
+
+  row.appendChild(toggle);
+  row.appendChild(label);
+  li.appendChild(row);
+
+  const childUl = document.createElement('ul');
+  childUl.className = 'tree-children';
+  childUl.style.display = 'none';
+  li.appendChild(childUl);
+
+  let loaded = false;
+  let expanded = false;
+
+  async function expand() {
+    if (!loaded) {
+      childUl.innerHTML = '<li class="empty">読み込み中…</li>';
+      try {
+        const data = await api(`/api/browse?path=${encodeURIComponent(entry.path)}`);
+        childUl.innerHTML = '';
+        if (data.entries.length === 0) {
+          childUl.innerHTML = '<li class="empty">サブフォルダなし</li>';
+        } else {
+          data.entries.forEach((e) => childUl.appendChild(makeNode(e)));
+        }
+        loaded = true;
+      } catch (err) {
+        childUl.innerHTML = `<li class="empty">${escapeHtml(err.message)}</li>`;
+      }
     }
-    data.entries.forEach((e) => {
-      const li = document.createElement('li');
-      li.innerHTML = `📁 ${escapeHtml(e.name)}`;
-      li.addEventListener('click', () => loadPicker(e.path));
-      pickerList.appendChild(li);
-    });
-  } catch (err) {
-    pickerList.innerHTML = `<li class="empty">${escapeHtml(err.message)}</li>`;
+    childUl.style.display = '';
+    toggle.textContent = '▼';
+    expanded = true;
   }
+
+  function collapse() {
+    childUl.style.display = 'none';
+    toggle.textContent = '▶';
+    expanded = false;
+  }
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    expanded ? collapse() : expand();
+  });
+
+  // 名前クリックで選択（＋未展開なら開く）
+  label.addEventListener('click', () => {
+    if (selectedRowEl) selectedRowEl.classList.remove('selected');
+    row.classList.add('selected');
+    selectedRowEl = row;
+    pickerSelected = entry.path;
+    pickerPath.textContent = entry.path;
+    pickerSelectBtn.disabled = false;
+    if (!expanded) expand();
+  });
+
+  // ルートは最初から開いておく
+  if (isRoot) expand();
+
+  return li;
 }
 
 document.querySelectorAll('button[data-browse]').forEach((btn) => {
@@ -181,31 +248,27 @@ picker.addEventListener('click', (e) => {
   if (e.target === picker) closePicker(); // 背景クリックで閉じる
 });
 
-document.getElementById('picker-up').addEventListener('click', async () => {
-  const q = `?path=${encodeURIComponent(pickerCurrent)}`;
-  const data = await api(`/api/browse${q}`);
-  if (data.parent) loadPicker(data.parent);
-});
-
-document.getElementById('picker-home').addEventListener('click', () => loadPicker(null));
-
 document.getElementById('picker-select').addEventListener('click', () => {
-  if (pickerCurrent && pickerTarget) {
-    form.elements[pickerTarget].value = pickerCurrent;
+  if (pickerSelected && pickerTarget) {
+    form.elements[pickerTarget].value = pickerSelected;
   }
   closePicker();
 });
 
 document.getElementById('picker-newfolder').addEventListener('click', async () => {
-  const name = prompt(`「${pickerCurrent}」の中に作る新しいフォルダ名を入力してください`);
+  if (!pickerSelected) {
+    alert('先に親フォルダをツリーから選択してください');
+    return;
+  }
+  const name = prompt(`「${pickerSelected}」の中に作る新しいフォルダ名を入力してください`);
   if (!name) return;
   try {
-    const created = await api('/api/mkdir', {
+    await api('/api/mkdir', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parent: pickerCurrent, name }),
+      body: JSON.stringify({ parent: pickerSelected, name }),
     });
-    await loadPicker(created.path); // 作ったフォルダの中に移動
+    alert('作成しました。親フォルダの ▶ を開き直すと一覧に表示されます。');
   } catch (err) {
     alert(err.message);
   }
